@@ -1,11 +1,13 @@
 mod camera;
 mod hittable;
+mod material;
 mod ray;
 mod sphere;
 
 // crate uses
 use crate::camera::Camera;
 use crate::hittable::HittableList;
+use crate::material::{Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 
@@ -14,6 +16,7 @@ use image::{ImageBuffer, Rgb};
 use nalgebra::Vector3;
 use rand::Rng;
 
+// for gamma correction
 fn ray_colour(colour_non_mapped: Vector3<f64>) -> Rgb<u8> {
     let r = (colour_non_mapped.x).sqrt();
     let g = (colour_non_mapped.y).sqrt();
@@ -31,8 +34,13 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
         return Vector3::new(0.0, 0.0, 0.0);
     }
     if let Some(hit) = world.hit(*ray, 0.001, f64::MAX) {
-        let target = hit.point + hit.normal + random_unit_vector();
-        0.5 * ray_colour_non_manip(&Ray::new(hit.point, target - hit.point), &world, depth - 1)
+        if let Some((scattered, attenuation)) = hit.material.scatter(*ray, hit) {
+            return attenuation.zip_map(
+                &ray_colour_non_manip(&scattered, &world, depth - 1),
+                |l, r| l * r,
+            );
+        }
+        Vector3::new(0.0, 0.0, 0.0)
     } else {
         // background (skybox now)
         let unit_direction = ray.direction().normalize();
@@ -41,23 +49,11 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
     }
 }
 
-fn random_unit_vector() -> Vector3<f64> {
-    let mut rng = rand::thread_rng();
-    let unit_vec = Vector3::new(1.0, 1.0, 1.0);
-    loop {
-        let point =
-            2.0 * Vector3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - unit_vec;
-        if point.magnitude_squared() < 1.0 {
-            return point.normalize();
-        }
-    }
-}
-
 fn main() {
     // cache rand function
     let mut rng = rand::thread_rng();
     // Image specs
-    const ASPECT_RATIO: f64 = 2.0; // instead of 16.0 / 9.0
+    const ASPECT_RATIO: f64 = 16.0 / 9.0; // instead of 16.0 / 9.0
     const IMAGE_WIDTH: f64 = 400.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
     const SAMPLES_PER_PIXEL: u32 = 100;
@@ -71,8 +67,26 @@ fn main() {
 
     // define world and scene
     let world = HittableList::new(vec![
-        Box::new(Sphere::new(Vector3::new(0.0, 0.0, -1.0), 0.5)),
-        Box::new(Sphere::new(Vector3::new(0.0, -100.5, -1.0), 100.0)),
+        Box::new(Sphere::new(
+            Vector3::new(0.0, 0.0, -1.0),
+            0.5,
+            Lambertian::new(Vector3::new(0.8, 0.3, 0.3)),
+        )),
+        Box::new(Sphere::new(
+            Vector3::new(0.0, -100.5, -1.0),
+            100.0,
+            Lambertian::new(Vector3::new(0.8, 0.8, 0.0)),
+        )),
+        Box::new(Sphere::new(
+            Vector3::new(1.0, 0.0, -1.0),
+            0.5,
+            Metal::new(Vector3::new(0.8, 0.6, 0.2)),
+        )),
+        Box::new(Sphere::new(
+            Vector3::new(-1.0, 0.0, -1.0),
+            0.5,
+            Metal::new(Vector3::new(0.8, 0.8, 0.8)),
+        )),
     ]);
 
     // Rendering

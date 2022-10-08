@@ -1,11 +1,13 @@
 use nalgebra::Vector3;
 
+use crate::material::Material;
 use crate::ray::Ray;
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f64,
     pub normal: Vector3<f64>,
     pub point: Vector3<f64>,
+    pub material: &'a dyn Material,
 }
 
 pub trait Hittable {

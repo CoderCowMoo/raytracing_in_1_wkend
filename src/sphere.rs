@@ -1,18 +1,22 @@
-use crate::hittable::{HitRecord, Hittable};
-use crate::ray::Ray;
 use nalgebra::Vector3;
 
+use crate::hittable::{HitRecord, Hittable};
+use crate::material::Material;
+use crate::ray::Ray;
+
 #[derive(Clone)]
-pub struct Sphere {
+pub struct Sphere<M: Material> {
     pos: Vector3<f64>,
     radius: f64,
+    material: M,
 }
 
-impl Sphere {
-    pub fn new(position: Vector3<f64>, radius: f64) -> Self {
+impl<M: Material> Sphere<M> {
+    pub fn new(position: Vector3<f64>, radius: f64, material: M) -> Self {
         Sphere {
             pos: position,
             radius: radius,
+            material,
         }
     }
     pub fn pos(&self) -> Vector3<f64> {
@@ -24,7 +28,7 @@ impl Sphere {
     }
 }
 
-impl Hittable for Sphere {
+impl<M: Material> Hittable for Sphere<M> {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin() - self.pos();
         let a = ray.direction().dot(&ray.direction());
@@ -37,13 +41,23 @@ impl Hittable for Sphere {
             if t < t_max && t > t_min {
                 let point = ray.point_when_at(t);
                 let normal = (point - self.pos()) / self.radius;
-                return Some(HitRecord { t, point, normal });
+                return Some(HitRecord {
+                    t,
+                    point,
+                    normal,
+                    material: &self.material,
+                });
             }
             let t = (-b + sqrt_discriminant) / a;
             if t < t_max && t > t_min {
                 let point = ray.point_when_at(t);
                 let normal = (point - self.pos()) / self.radius;
-                return Some(HitRecord { t, point, normal });
+                return Some(HitRecord {
+                    t,
+                    point,
+                    normal,
+                    material: &self.material,
+                });
             }
         }
         None
