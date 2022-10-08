@@ -14,13 +14,15 @@ pub trait Hittable {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
+// default returns default for a type (in this case what new would return)
+#[derive(Default)]
 pub struct HittableList {
     list: Vec<Box<dyn Hittable>>,
 }
 
 impl HittableList {
-    pub fn new(list: Vec<Box<dyn Hittable>>) -> Self {
-        HittableList { list }
+    pub fn push(&mut self, hittable: impl Hittable + 'static) {
+        self.list.push(Box::new(hittable));
     }
 }
 

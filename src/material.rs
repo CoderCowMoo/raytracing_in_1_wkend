@@ -31,7 +31,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: Ray, rec: HitRecord) -> Option<(Ray, Vector3<f64>)> {
+    fn scatter(&self, _ray: Ray, rec: HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let target = rec.point + rec.normal + random_in_unit_sphere();
         let scattered = Ray::new(rec.point, target - rec.point);
         Some((scattered, self.albedo))

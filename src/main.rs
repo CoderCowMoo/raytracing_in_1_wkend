@@ -15,9 +15,79 @@ use image::{ImageBuffer, Rgb};
 use nalgebra::Vector3;
 use rand::Rng;
 use rayon;
+use rayon::prelude::IntoParallelIterator;
 
 // std uses
 use std::f64;
+
+// for arranging a random scene
+fn random_scene() -> HittableList {
+    let mut rng = rand::thread_rng();
+    let origin = Vector3::new(4.0, 0.2, 0.0);
+    let mut world = HittableList::default();
+    world.push(Sphere::new(
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Lambertian::new(Vector3::new(0.5, 0.5, 0.5)),
+    ));
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_material = rng.gen::<f64>();
+            let center = Vector3::new(
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            );
+            if (center - origin).magnitude() > 0.9 {
+                if choose_material < 0.8 {
+                    // diffuse
+                    world.push(Sphere::new(
+                        center,
+                        0.2,
+                        Lambertian::new(Vector3::new(
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                            rng.gen::<f64>() * rng.gen::<f64>(),
+                        )),
+                    ));
+                } else if choose_material < 0.95 {
+                    // metal
+                    world.push(Sphere::new(
+                        center,
+                        0.2,
+                        Metal::new(
+                            Vector3::new(
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                                0.5 * (1.0 + rng.gen::<f64>()),
+                            ),
+                            0.5 * rng.gen::<f64>(),
+                        ),
+                    ));
+                } else {
+                    // glass
+                    world.push(Sphere::new(center, 0.2, Dielectric::new(1.5)));
+                }
+            }
+        }
+    }
+    world.push(Sphere::new(
+        Vector3::new(0.0, 1.0, 0.0),
+        1.0,
+        Dielectric::new(1.5),
+    ));
+    world.push(Sphere::new(
+        Vector3::new(-4.0, 1.0, 0.0),
+        1.0,
+        Lambertian::new(Vector3::new(0.4, 0.2, 0.1)),
+    ));
+    world.push(Sphere::new(
+        Vector3::new(4.0, 1.0, 0.0),
+        1.0,
+        Metal::new(Vector3::new(0.7, 0.6, 0.5), 0.0),
+    ));
+    world
+}
 
 // for gamma correction
 fn ray_colour(colour_non_mapped: Vector3<f64>) -> Rgb<u8> {
@@ -57,16 +127,16 @@ fn main() {
     let mut rng = rand::thread_rng();
     // Image specs
     const ASPECT_RATIO: f64 = 16.0 / 9.0; // instead of 16.0 / 9.0
-    const IMAGE_WIDTH: f64 = 400.0;
+    const IMAGE_WIDTH: f64 = 1200.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
-    const SAMPLES_PER_PIXEL: u32 = 100;
+    const SAMPLES_PER_PIXEL: u32 = 10;
     const MAX_DEPTH: u32 = 50;
 
     // Camera
-    let look_from = Vector3::new(3.0, 3.0, 2.0);
-    let look_at = Vector3::new(0.0, 0.0, -1.0);
-    let focus_dist = (look_from - look_at).magnitude();
-    let aperture = 2.0;
+    let look_from = Vector3::new(13.0, 2.0, 3.0);
+    let look_at = Vector3::new(0.0, 0.0, 0.0);
+    let focus_dist = 10.0;
+    let aperture = 0.1;
     let cam = Camera::new(
         look_from,
         look_at,
@@ -78,33 +148,7 @@ fn main() {
     );
 
     // define world and scene
-    let world = HittableList::new(vec![
-        Box::new(Sphere::new(
-            Vector3::new(0.0, 0.0, -1.0),
-            0.5,
-            Lambertian::new(Vector3::new(0.1, 0.2, 0.5)),
-        )),
-        Box::new(Sphere::new(
-            Vector3::new(0.0, -100.5, -1.0),
-            100.0,
-            Lambertian::new(Vector3::new(0.8, 0.8, 0.0)),
-        )),
-        Box::new(Sphere::new(
-            Vector3::new(1.0, 0.0, -1.0),
-            0.5,
-            Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.2),
-        )),
-        Box::new(Sphere::new(
-            Vector3::new(-1.0, 0.0, -1.0),
-            0.5,
-            Dielectric::new(1.5),
-        )),
-        Box::new(Sphere::new(
-            Vector3::new(-1.0, 0.0, -1.0),
-            -0.45,
-            Dielectric::new(1.5),
-        )),
-    ]);
+    let world = random_scene();
 
     // Rendering
 
