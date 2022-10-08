@@ -29,7 +29,7 @@ impl Hittable for Sphere {
         let oc = ray.origin() - self.pos();
         let a = ray.direction().dot(&ray.direction());
         let b = oc.dot(&ray.direction());
-        let c = oc.dot(&oc) - self.radius.powi(2);
+        let c = oc.dot(&oc) - self.radius().powi(2);
         let discriminant = b.powi(2) - a * c;
         if discriminant > 0.0 {
             let sqrt_discriminant = discriminant.sqrt();
