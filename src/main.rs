@@ -80,11 +80,16 @@ fn main() {
         Box::new(Sphere::new(
             Vector3::new(1.0, 0.0, -1.0),
             0.5,
-            Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.0),
+            Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.2),
         )),
         Box::new(Sphere::new(
             Vector3::new(-1.0, 0.0, -1.0),
             0.5,
+            Dielectric::new(1.5),
+        )),
+        Box::new(Sphere::new(
+            Vector3::new(-1.0, 0.0, -1.0),
+            0.45,
             Dielectric::new(1.5),
         )),
     ]);

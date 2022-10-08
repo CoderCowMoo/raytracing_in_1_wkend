@@ -16,10 +16,6 @@ fn random_in_unit_sphere() -> Vector3<f64> {
     }
 }
 
-fn reflect(v: &Vector3<f64>, n: &Vector3<f64>) -> Vector3<f64> {
-    v - 2.0 * v.dot(&n) * n
-}
-
 pub trait Material {
     fn scatter(&self, ray: Ray, rec: HitRecord) -> Option<(Ray, Vector3<f64>)>;
 }
@@ -82,6 +78,15 @@ fn refract(v: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Option<Vect
     }
 }
 
+fn reflect(v: &Vector3<f64>, n: &Vector3<f64>) -> Vector3<f64> {
+    v - 2.0 * v.dot(&n) * n
+}
+
+fn schlick(cosine: f64, ir: f64) -> f64 {
+    let r0 = (1.0 - ir) / (1.0 + ir).powi(2);
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
 pub struct Dielectric {
     ir: f64, // index of refraction
 }
@@ -97,18 +102,22 @@ impl Dielectric {
 impl Material for Dielectric {
     fn scatter(&self, ray: Ray, rec: HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let attenuation = Vector3::new(1.0, 1.0, 1.0);
-        let (outward_normal, ni_over_nt) = if ray.direction().dot(&rec.normal) > 0.0 {
-            (-rec.normal, self.ir)
+        let (outward_normal, ni_over_nt, cosine) = if ray.direction().dot(&rec.normal) > 0.0 {
+            let cosine = self.ir * ray.direction().dot(&rec.normal) / ray.direction().magnitude();
+            (-rec.normal, self.ir, cosine)
         } else {
-            (rec.normal, 1.0 / self.ir)
+            let cosine = -ray.direction().dot(&rec.normal) / ray.direction().magnitude();
+            (rec.normal, 1.0 / self.ir, cosine)
         };
         if let Some(refracted) = refract(ray.direction(), outward_normal, ni_over_nt) {
-            let scattered = Ray::new(rec.point, refracted);
-            Some((scattered, attenuation))
-        } else {
-            let reflected = reflect(&ray.direction(), &rec.normal);
-            let scattered = Ray::new(rec.point, reflected);
-            Some((scattered, attenuation))
+            let reflect_prob = schlick(cosine, self.ir);
+            if rand::thread_rng().gen::<f64>() >= reflect_prob {
+                let scattered = Ray::new(rec.point, refracted);
+                return Some((scattered, attenuation));
+            }
         }
+        let reflected = reflect(&ray.direction(), &rec.normal);
+        let scattered = Ray::new(rec.point, reflected);
+        Some((scattered, attenuation))
     }
 }
