@@ -63,12 +63,18 @@ fn main() {
     const MAX_DEPTH: u32 = 50;
 
     // Camera
-    let camera = Camera::new(
-        Vector3::new(-2.0, 2.0, 1.0),
-        Vector3::new(0.0, 0.0, -1.0),
+    let look_from = Vector3::new(3.0, 3.0, 2.0);
+    let look_at = Vector3::new(0.0, 0.0, -1.0);
+    let focus_dist = (look_from - look_at).magnitude();
+    let aperture = 2.0;
+    let cam = Camera::new(
+        look_from,
+        look_at,
         Vector3::new(0.0, 1.0, 0.0),
         20.0,
         ASPECT_RATIO,
+        aperture,
+        focus_dist,
     );
 
     // define world and scene
@@ -109,7 +115,7 @@ fn main() {
             for _ in 0..SAMPLES_PER_PIXEL {
                 let u = (i as f64 + rng.gen::<f64>()) / IMAGE_WIDTH;
                 let v = (j as f64 + rng.gen::<f64>()) / IMAGE_HEIGHT;
-                let ray = camera.get_ray(u, v);
+                let ray = cam.get_ray(u, v);
                 colour += ray_colour_non_manip(&ray, &world, MAX_DEPTH);
             }
             colour /= SAMPLES_PER_PIXEL as f64;
