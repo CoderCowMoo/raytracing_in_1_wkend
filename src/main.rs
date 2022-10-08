@@ -33,9 +33,9 @@ fn ray_colour(ray: Ray) -> Rgb<u8> {
         let n = (ray.point_when_at(t) - sphere.pos()).normalize();
         let colour_vec = 0.5 * n.add_scalar(1.0);
         Rgb([
-            (colour_vec.x * 255.999) as u8,
-            (colour_vec.y * 255.999) as u8,
-            (colour_vec.z * 255.999) as u8,
+            (colour_vec.x * 255.99) as u8,
+            (colour_vec.y * 255.99) as u8,
+            (colour_vec.z * 255.99) as u8,
         ])
     } else {
         let norm_direction = ray.direction().normalize();
@@ -44,17 +44,17 @@ fn ray_colour(ray: Ray) -> Rgb<u8> {
         let colour_vec =
             (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + (t) * Vector3::new(0.5, 0.7, 1.0);
         Rgb([
-            (colour_vec.x * 255.999) as u8,
-            (colour_vec.y * 255.999) as u8,
-            (colour_vec.z * 255.999) as u8,
+            (colour_vec.x * 255.99) as u8,
+            (colour_vec.y * 255.99) as u8,
+            (colour_vec.z * 255.99) as u8,
         ])
     }
 }
 
 fn main() {
     // Image specs
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: f64 = 400.0;
+    const ASPECT_RATIO: f64 = 2.0;
+    const IMAGE_WIDTH: f64 = 200.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
 
     // Camera
@@ -65,21 +65,20 @@ fn main() {
     let origin = Vector3::new(0.0, 0.0, 0.0);
     let horizontal = Vector3::new(viewport_width, 0.0, 0.0);
     let vertical = Vector3::new(0.0, viewport_height, 0.0);
-    let lower_left_corner =
-        origin - (horizontal / 2.0) - (vertical / 2.0) - Vector3::new(0.0, 0.0, focal_length);
+    let lower_left_corner = Vector3::new(-2.0, -1.0, -1.0);
 
     // Rendering
 
     let mut img = ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
-    for y in (0..IMAGE_HEIGHT as u32).rev() {
-        for x in 0..IMAGE_WIDTH as u32 {
-            let u = x as f64 / (IMAGE_WIDTH - 1.0);
-            let v = y as f64 / (IMAGE_HEIGHT - 1.0);
-            let out_ray = Ray::new(
-                origin,
-                lower_left_corner + u * horizontal + v * vertical - origin,
-            );
-            img.put_pixel(x, y, ray_colour(out_ray));
+    for j in (1..IMAGE_HEIGHT as u32).rev() {
+        for i in 0..IMAGE_WIDTH as u32 {
+            let u = i as f64 / (IMAGE_WIDTH);
+            let v = j as f64 / (IMAGE_HEIGHT);
+            let new_direction = lower_left_corner + u * horizontal + v * vertical;
+            let out_ray = Ray::new(origin, new_direction);
+            let out_colr = ray_colour(out_ray);
+            // println!("{} {} {}", out_colr.0[0], out_colr.0[1], out_colr[2]);
+            img.put_pixel(i, IMAGE_HEIGHT as u32 - j, out_colr);
         }
     }
 
