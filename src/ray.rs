@@ -1,5 +1,6 @@
 use nalgebra::Vector3;
 
+#[derive(Clone, Copy)]
 pub struct Ray {
     origin: Vector3<f64>,
     direction: Vector3<f64>,

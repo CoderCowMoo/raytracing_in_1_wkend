@@ -6,8 +6,25 @@ use crate::ray::Ray;
 use image::{ImageBuffer, Rgb};
 use nalgebra::Vector3;
 
+// we are trying to calculate the value t for Rays in finding points on the Ray where it intersects with the sphere
+fn sphere_intersect(center_of_sphere: Vector3<f64>, radius: f64, ray: Ray) -> bool {
+    // I'm not sure exactly oc is but I'll find out eventually
+    let oc = ray.origin() - center_of_sphere;
+    // now we have a quadratic equation which we're getting the coefficients for:
+    // ax^2 + bx + c
+    let a = ray.direction().dot(&ray.direction());
+    let b = 2.0 * oc.dot(&ray.direction());
+    let c = oc.dot(&oc) - radius.powf(2.0);
+    let discriminant = b.powf(2.0) - 4.0 * a * c;
+    return discriminant > 0.0;
+}
+
 // for now, this function is the sole decider of the colours in the scene.
 fn ray_colour(ray: Ray) -> Rgb<u8> {
+    // here we define sphere of size 0.5 and at position -1 from camera in mid.
+    if sphere_intersect(Vector3::new(0.0, 0.0, -1.0), 0.5, ray.clone()) {
+        return Rgb([255, 0, 0]); // if intersect then sphere is red
+    }
     let norm_direction = ray.direction().normalize();
     let t = 0.5 * (norm_direction.y + 1.0);
     // lerp the 2 colours sky blue and white
