@@ -1,3 +1,5 @@
+use crate::hittable;
+use crate::ray::Ray;
 use nalgebra::Vector3;
 
 #[derive(Clone)]
@@ -20,4 +22,8 @@ impl Sphere {
     pub fn radius(&self) -> f64 {
         self.radius
     }
+}
+
+impl hittable::HitRecord for Sphere {
+    pub fn hit()
 }
