@@ -6,15 +6,18 @@ mod sphere;
 
 // crate uses
 use crate::camera::Camera;
-use crate::hittable::HittableList;
+use crate::hittable::{Hittable, HittableList};
 use crate::material::{Dielectric, Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 
-use hittable::Hittable;
 use image::{ImageBuffer, Rgb};
 use nalgebra::Vector3;
 use rand::Rng;
+use rayon;
+
+// std uses
+use std::f64;
 
 // for gamma correction
 fn ray_colour(colour_non_mapped: Vector3<f64>) -> Rgb<u8> {
@@ -60,10 +63,13 @@ fn main() {
     const MAX_DEPTH: u32 = 50;
 
     // Camera
-    let viewport_height = 2.0;
-    let viewport_width = ASPECT_RATIO * viewport_height;
-    let focal_length = 1.0;
-    let camera = Camera::new(viewport_width, viewport_height, focal_length);
+    let camera = Camera::new(
+        Vector3::new(-2.0, 2.0, 1.0),
+        Vector3::new(0.0, 0.0, -1.0),
+        Vector3::new(0.0, 1.0, 0.0),
+        20.0,
+        ASPECT_RATIO,
+    );
 
     // define world and scene
     let world = HittableList::new(vec![
@@ -89,7 +95,7 @@ fn main() {
         )),
         Box::new(Sphere::new(
             Vector3::new(-1.0, 0.0, -1.0),
-            0.45,
+            -0.45,
             Dielectric::new(1.5),
         )),
     ]);
