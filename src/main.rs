@@ -17,12 +17,25 @@ use rand::Rng;
 // returns a non mapped (0.0 .. 1.0) Vector3 of R G B
 fn ray_colour(ray: &Ray, world: &HittableList) -> Vector3<f64> {
     if let Some(hit) = world.hit(*ray, 0.0, f64::MAX) {
-        0.5 * hit.normal.add_scalar(1.0)
+        let target = hit.point + hit.normal + random_in_unit_sphere();
+        0.5 * ray_colour(&Ray::new(hit.point, target - hit.point), &world)
     } else {
         // background (skybox now)
         let unit_direction = ray.direction().normalize();
         let t = 0.5 * (unit_direction.y + 1.0);
         (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
+    }
+}
+
+fn random_in_unit_sphere() -> Vector3<f64> {
+    let mut rng = rand::thread_rng();
+    let unit_vec = Vector3::new(1.0, 1.0, 1.0);
+    loop {
+        let point =
+            2.0 * Vector3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - unit_vec;
+        if point.magnitude_squared() < 1.0 {
+            return point;
+        }
     }
 }
 
@@ -33,7 +46,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 2.0; // instead of 16.0 / 9.0
     const IMAGE_WIDTH: f64 = 200.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
-    const SAMPLES_PER_PIXEL: f64 = 100.0;
+    const SAMPLES_PER_PIXEL: f64 = 10.0;
 
     // Camera
     let viewport_height = 2.0;
