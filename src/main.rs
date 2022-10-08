@@ -14,7 +14,7 @@ use image::{ImageBuffer, Rgb};
 use nalgebra::Vector3;
 use rand::Rng;
 
-fn ray_colour(colour_non_mapped: Vector3<f64>, samples_per_pixel: u32) -> Rgb<u8> {
+fn ray_colour(colour_non_mapped: Vector3<f64>) -> Rgb<u8> {
     let r = (colour_non_mapped.x).sqrt();
     let g = (colour_non_mapped.y).sqrt();
     let b = (colour_non_mapped.z).sqrt();
@@ -31,7 +31,7 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
         return Vector3::new(0.0, 0.0, 0.0);
     }
     if let Some(hit) = world.hit(*ray, 0.001, f64::MAX) {
-        let target = hit.point + hit.normal + random_in_unit_sphere();
+        let target = hit.point + hit.normal + random_unit_vector();
         0.5 * ray_colour_non_manip(&Ray::new(hit.point, target - hit.point), &world, depth - 1)
     } else {
         // background (skybox now)
@@ -41,14 +41,14 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
     }
 }
 
-fn random_in_unit_sphere() -> Vector3<f64> {
+fn random_unit_vector() -> Vector3<f64> {
     let mut rng = rand::thread_rng();
     let unit_vec = Vector3::new(1.0, 1.0, 1.0);
     loop {
         let point =
             2.0 * Vector3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - unit_vec;
         if point.magnitude_squared() < 1.0 {
-            return point;
+            return point.normalize();
         }
     }
 }
@@ -88,7 +88,7 @@ fn main() {
                 colour += ray_colour_non_manip(&ray, &world, MAX_DEPTH);
             }
             colour /= SAMPLES_PER_PIXEL as f64;
-            let out_colour = ray_colour(colour, SAMPLES_PER_PIXEL);
+            let out_colour = ray_colour(colour);
             img.put_pixel(i, IMAGE_HEIGHT as u32 - j, out_colour);
         }
     }
