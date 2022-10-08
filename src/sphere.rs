@@ -28,7 +28,7 @@ impl<M: Material> Sphere<M> {
     }
 }
 
-impl<M: Material> Hittable for Sphere<M> {
+impl<M: Material + std::marker::Sync> Hittable for Sphere<M> {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin() - self.pos();
         let a = ray.direction().dot(&ray.direction());

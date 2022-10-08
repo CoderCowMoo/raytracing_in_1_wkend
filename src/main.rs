@@ -11,11 +11,10 @@ use crate::material::{Dielectric, Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 
-use image::{ImageBuffer, Rgb};
+use image::{ImageBuffer, Rgb, RgbImage};
 use nalgebra::Vector3;
 use rand::Rng;
-use rayon;
-use rayon::prelude::IntoParallelIterator;
+use rayon::prelude::*;
 
 // std uses
 use std::f64;
@@ -123,11 +122,9 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
 }
 
 fn main() {
-    // cache rand function
-    let mut rng = rand::thread_rng();
     // Image specs
     const ASPECT_RATIO: f64 = 16.0 / 9.0; // instead of 16.0 / 9.0
-    const IMAGE_WIDTH: f64 = 1200.0;
+    const IMAGE_WIDTH: f64 = 400.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
     const SAMPLES_PER_PIXEL: u32 = 10;
     const MAX_DEPTH: u32 = 50;
@@ -152,21 +149,38 @@ fn main() {
 
     // Rendering
 
-    let mut img = ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
-    for j in (1..IMAGE_HEIGHT as u32).rev() {
-        for i in 0..IMAGE_WIDTH as u32 {
-            let mut colour = Vector3::new(0.0, 0.0, 0.0);
-            for _ in 0..SAMPLES_PER_PIXEL {
-                let u = (i as f64 + rng.gen::<f64>()) / IMAGE_WIDTH;
-                let v = (j as f64 + rng.gen::<f64>()) / IMAGE_HEIGHT;
-                let ray = cam.get_ray(u, v);
-                colour += ray_colour_non_manip(&ray, &world, MAX_DEPTH);
-            }
-            colour /= SAMPLES_PER_PIXEL as f64;
-            let out_colour = ray_colour(colour);
-            img.put_pixel(i, IMAGE_HEIGHT as u32 - j, out_colour);
-        }
-    }
+    let img: Vec<u8> = (0..IMAGE_HEIGHT as u32)
+        .into_iter()
+        .rev()
+        .flat_map(|j| {
+            (0..IMAGE_WIDTH as u32)
+                .flat_map(|i| {
+                    // cache rand function
+                    let col: Vector3<f64> = (0..SAMPLES_PER_PIXEL)
+                        .map(|_| {
+                            let mut rng = rand::thread_rng();
 
-    img.save("scene.png").unwrap();
+                            let u = (i as f64 + rng.gen::<f64>()) / IMAGE_WIDTH;
+                            let v = (j as f64 + rng.gen::<f64>()) / IMAGE_HEIGHT;
+                            let ray = cam.get_ray(u, v);
+                            ray_colour_non_manip(&ray, &world, MAX_DEPTH)
+                        })
+                        .sum();
+                    col.iter()
+                        .map(|c| (255.999 * (c / SAMPLES_PER_PIXEL as f64)) as u8)
+                        .collect::<Vec<u8>>()
+                })
+                .collect::<Vec<u8>>()
+        })
+        .collect();
+
+    // let col_buffer: Vec<Rgb<u8>> = Vec::new();
+    // for colour in img.chunks(3) {
+    //     col_buffer.push(ray_colour(Vector3::new(colour[0] as f64, colour[1], colour[2])));
+    // }
+    if let Some(new_img) = RgbImage::from_vec(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32, img) {
+        new_img.save("scene.png").unwrap();
+    } else {
+        eprintln!("Failure in creating final image from Vec<u8>");
+    }
 }
