@@ -1,4 +1,4 @@
-use crate::hittable;
+use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use nalgebra::Vector3;
 
@@ -24,6 +24,28 @@ impl Sphere {
     }
 }
 
-impl hittable::HitRecord for Sphere {
-    pub fn hit()
+impl Hittable for Sphere {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let oc = ray.origin() - self.pos();
+        let a = ray.direction().dot(&ray.direction());
+        let b = oc.dot(&ray.direction());
+        let c = oc.dot(&oc) - self.radius.powi(2);
+        let discriminant = b.powi(2) - a * c;
+        if discriminant > 0.0 {
+            let sqrt_discriminant = discriminant.sqrt();
+            let t = (-b - sqrt_discriminant) / a;
+            if t < t_max && t > t_min {
+                let point = ray.point_when_at(t);
+                let normal = (point - self.pos()) / self.radius;
+                return Some(HitRecord { t, point, normal });
+            }
+            let t = (-b + sqrt_discriminant) / a;
+            if t < t_max && t > t_min {
+                let point = ray.point_when_at(t);
+                let normal = (point - self.pos()) / self.radius;
+                return Some(HitRecord { t, point, normal });
+            }
+        }
+        None
+    }
 }
