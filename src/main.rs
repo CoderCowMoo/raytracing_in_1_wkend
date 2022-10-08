@@ -7,7 +7,7 @@ mod sphere;
 // crate uses
 use crate::camera::Camera;
 use crate::hittable::HittableList;
-use crate::material::{Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 
@@ -70,7 +70,7 @@ fn main() {
         Box::new(Sphere::new(
             Vector3::new(0.0, 0.0, -1.0),
             0.5,
-            Lambertian::new(Vector3::new(0.8, 0.3, 0.3)),
+            Lambertian::new(Vector3::new(0.1, 0.2, 0.5)),
         )),
         Box::new(Sphere::new(
             Vector3::new(0.0, -100.5, -1.0),
@@ -80,12 +80,12 @@ fn main() {
         Box::new(Sphere::new(
             Vector3::new(1.0, 0.0, -1.0),
             0.5,
-            Metal::new(Vector3::new(0.8, 0.6, 0.2), 1.0),
+            Metal::new(Vector3::new(0.8, 0.6, 0.2), 0.0),
         )),
         Box::new(Sphere::new(
             Vector3::new(-1.0, 0.0, -1.0),
             0.5,
-            Metal::new(Vector3::new(0.8, 0.8, 0.8), 0.3),
+            Dielectric::new(1.5),
         )),
     ]);
 

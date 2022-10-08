@@ -68,3 +68,47 @@ impl Material for Metal {
         }
     }
 }
+
+// https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection:~:text=(typically%20air%20%3D%201.0%2C%20glass%20%3D%201.3%E2%80%931.7%2C%20diamond%20%3D%202.4)
+fn refract(v: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Option<Vector3<f64>> {
+    let uv = v.normalize();
+    let dt = uv.dot(&n);
+    let discriminant = 1.0 - etai_over_etat.powi(2) * (1.0 - dt.powi(2));
+    if discriminant > 0.0 {
+        let refracted = etai_over_etat * (uv - n * dt) - n * discriminant.sqrt();
+        Some(refracted)
+    } else {
+        None
+    }
+}
+
+pub struct Dielectric {
+    ir: f64, // index of refraction
+}
+
+impl Dielectric {
+    pub fn new(index_of_refraction: f64) -> Self {
+        Dielectric {
+            ir: index_of_refraction,
+        }
+    }
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray: Ray, rec: HitRecord) -> Option<(Ray, Vector3<f64>)> {
+        let attenuation = Vector3::new(1.0, 1.0, 1.0);
+        let (outward_normal, ni_over_nt) = if ray.direction().dot(&rec.normal) > 0.0 {
+            (-rec.normal, self.ir)
+        } else {
+            (rec.normal, 1.0 / self.ir)
+        };
+        if let Some(refracted) = refract(ray.direction(), outward_normal, ni_over_nt) {
+            let scattered = Ray::new(rec.point, refracted);
+            Some((scattered, attenuation))
+        } else {
+            let reflected = reflect(&ray.direction(), &rec.normal);
+            let scattered = Ray::new(rec.point, reflected);
+            Some((scattered, attenuation))
+        }
+    }
+}
