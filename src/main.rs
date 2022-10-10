@@ -11,20 +11,22 @@ use crate::material::{Dielectric, Lambertian, Metal};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 
-use image::{ImageBuffer, Rgb, RgbImage};
+// external crates
+use image::RgbImage;
 use nalgebra::Vector3;
 use rand::Rng;
 use rayon::prelude::*;
 
 // std uses
 use std::f64;
+use std::time::Instant;
 
 // for arranging a random scene
 fn random_scene() -> HittableList {
     let mut rng = rand::thread_rng();
     let origin = Vector3::new(4.0, 0.2, 0.0);
     let mut world = HittableList::default();
-    world.push(Sphere::new(
+    world.push(Sphere::new( // floor sphere
         Vector3::new(0.0, -1000.0, 0.0),
         1000.0,
         Lambertian::new(Vector3::new(0.5, 0.5, 0.5)),
@@ -88,18 +90,6 @@ fn random_scene() -> HittableList {
     world
 }
 
-// for gamma correction
-fn ray_colour(colour_non_mapped: Vector3<f64>) -> Rgb<u8> {
-    let r = (colour_non_mapped.x).sqrt();
-    let g = (colour_non_mapped.y).sqrt();
-    let b = (colour_non_mapped.z).sqrt();
-    Rgb([
-        (256.0 * r.clamp(0.0, 0.999)) as u8,
-        (256.0 * g.clamp(0.0, 0.999)) as u8,
-        (256.0 * b.clamp(0.0, 0.999)) as u8,
-    ])
-}
-
 // returns a non mapped (0.0 .. 1.0) Vector3 of R G B
 fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<f64> {
     if depth <= 0 {
@@ -122,11 +112,15 @@ fn ray_colour_non_manip(ray: &Ray, world: &HittableList, depth: u32) -> Vector3<
 }
 
 fn main() {
+    let now = Instant::now();
     // Image specs
+    // at 1200 width and 100 samples it takes 7m approx parallelised.
+	// at 3840 width and 100 samples it takes 83.35m parallelised
+	// at 3840 * 2 width and 100 samplpes it takes 5.35 hours parallelised
     const ASPECT_RATIO: f64 = 16.0 / 9.0; // instead of 16.0 / 9.0
-    const IMAGE_WIDTH: f64 = 400.0;
+    const IMAGE_WIDTH: f64 = 1280.0;
     const IMAGE_HEIGHT: f64 = IMAGE_WIDTH / ASPECT_RATIO;
-    const SAMPLES_PER_PIXEL: u32 = 10;
+    const SAMPLES_PER_PIXEL: u32 = 500;
     const MAX_DEPTH: u32 = 50;
 
     // Camera
@@ -150,10 +144,11 @@ fn main() {
     // Rendering
 
     let img: Vec<u8> = (0..IMAGE_HEIGHT as u32)
-        .into_iter()
+        .into_par_iter()
         .rev()
         .flat_map(|j| {
             (0..IMAGE_WIDTH as u32)
+                .into_iter()
                 .flat_map(|i| {
                     // cache rand function
                     let col: Vector3<f64> = (0..SAMPLES_PER_PIXEL)
@@ -179,8 +174,9 @@ fn main() {
     //     col_buffer.push(ray_colour(Vector3::new(colour[0] as f64, colour[1], colour[2])));
     // }
     if let Some(new_img) = RgbImage::from_vec(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32, img) {
-        new_img.save("scene.png").unwrap();
+        new_img.save("400px-100spp.png").unwrap();
     } else {
         eprintln!("Failure in creating final image from Vec<u8>");
     }
+    println!("{:?}", now.elapsed());
 }
